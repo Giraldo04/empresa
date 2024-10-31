@@ -1,0 +1,9 @@
+/* For information on how to create your own theme, please see:
+http://ionicframework.com/docs/theming/ */
+:root {
+
+    --primary-color: #ff0000; /* Rojo */
+    --secondary-color: #000000; /* Negro */
+    --background-color: #ffffff; /* Blanco */
+    
+  }
