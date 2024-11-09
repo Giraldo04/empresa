@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Redirect, Route } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Redirect, Route, useHistory } from 'react-router-dom';
 import { IonApp, IonRouterOutlet } from '@ionic/react';
 import { IonReactRouter } from '@ionic/react-router';
 import Trabajadores from './pages/Trabajadores';
@@ -10,7 +10,8 @@ import '@ionic/react/css/core.css';
 import './theme/variables.css';
 
 const App: React.FC = () => {
-  
+  const history = useHistory();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -19,15 +20,21 @@ const App: React.FC = () => {
     console.log('Token:', token, 'Rol:', rol);
 
     if (token && rol) {
-      if (rol === 'administrador') {
-        window.location.href = '/administradores';
-      } else if (rol === 'trabajador') {
-        window.location.href = '/trabajadores';
+      if (rol === 'administrador' && window.location.pathname !== '/administradores') {
+        history.push('/administradores');
+      } else if (rol === 'trabajador' && window.location.pathname !== '/trabajadores') {
+        history.push('/trabajadores');
       }
-    } else {
-      window.location.href = '/login';
+    } else if (window.location.pathname !== '/login') {
+      history.push('/login');
     }
+
+    setLoading(false);
   }, [history]);
+
+  if (loading) {
+    return <div>Loading...</div>; // Puedes reemplazar esto con un componente de carga más estilizado si lo prefieres
+  }
 
   return (
     <IonApp>
