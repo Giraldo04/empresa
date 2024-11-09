@@ -47,8 +47,10 @@ app.post('/crear-usuario', (req, res) => {
         'INSERT INTO trabajadores (nombre, email, contrasena, rol) VALUES (?, ?, ?, ?)',
         [nombre, email, hashedPassword, rol],
         (err, results) => {
+            console.log(results);
             if (err) {
                 return res.status(500).json({ message: 'Error creando el usuario' });
+                
             }
             res.status(201).json({ message: 'Usuario creado con éxito' });
         }
