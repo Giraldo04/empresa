@@ -63,8 +63,8 @@ const Trabajadores: React.FC<TrabajadoresProps> = ({ cortesDisponibles = [] }) =
             <IonHeader>
                 <IonToolbar className="toolbar">
                     <IonTitle className="header-title">Registro de Producción</IonTitle>
-                    <IonButton slot="end" onClick={handleLogout} color="danger" fill="clear">
-                        <IonIcon icon={logOut} slot="icon-only" />
+                    <IonButton slot="end" onClick={handleLogout}>
+                        <IonIcon icon={logOut} />
                     </IonButton>
                 </IonToolbar>
             </IonHeader>

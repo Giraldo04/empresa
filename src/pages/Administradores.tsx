@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonButton, IonItem, IonLabel, IonList, IonSelect, IonSelectOption, IonCard, IonCardContent, IonGrid, IonRow, IonCol, IonIcon } from '@ionic/react';
-import { add, copy, trash } from 'ionicons/icons'; // Importa algunos iconos
+import { add, copy, trash, logOut } from 'ionicons/icons'; // Importa algunos iconos
 import './Administradores.css';
 
 interface Posicion {
@@ -67,6 +67,9 @@ const Administradores: React.FC = () => {
             <IonHeader>
                 <IonToolbar className="toolbar">
                     <IonTitle className="header-title">Administración de Modelos y Cortes</IonTitle>
+                    <IonButton slot="end" onClick={handleLogout}>
+                        <IonIcon icon={logOut} />
+                    </IonButton>
                 </IonToolbar>
             </IonHeader>
             <IonContent>
