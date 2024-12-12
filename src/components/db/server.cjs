@@ -69,24 +69,22 @@ app.get('/obtener-cortes', authenticateToken, (req, res) => {
             modelos.nombre AS modelo,
             posiciones.id AS posicionId,
             posiciones.nombre AS posicionNombre,
-            posiciones.precio AS posicionPrecio
+            IFNULL(posiciones.precio, 0) AS posicionPrecio -- Valor predeterminado si el precio es NULL
         FROM cortes
         JOIN modelos ON cortes.modelo_id = modelos.id
         LEFT JOIN posiciones ON posiciones.modelo_id = modelos.id
-        ORDER BY cortes.id; 
-        `,
+        ORDER BY cortes.id;`,
         (err, results) => {
             if (err) {
                 console.error('Error al obtener los cortes:', err);
                 return res.status(500).json({ message: 'Error al obtener los cortes' });
             }
 
-             // Estructura los datos en un formato más legible para el frontend
-             const cortes = results.reduce((acc, row) => {
-                let corte = acc.find(c => c.id === row.corteId);
+            const cortes = results.reduce((acc, row) => {
+                let corte = acc.find(c => c.id === row.corte_id);
                 if (!corte) {
                     corte = {
-                        id: row.corteId,
+                        id: row.corte_id,
                         numeroCorte: row.numeroCorte,
                         modelo: row.modelo,
                         posiciones: [],
@@ -97,9 +95,10 @@ app.get('/obtener-cortes', authenticateToken, (req, res) => {
                     corte.posiciones.push({
                         id: row.posicionId,
                         nombre: row.posicionNombre,
-                        precio: row.posicionPrecio,
+                        precio: parseFloat(row.posicionPrecio), // Convertimos a número
                     });
                 }
+
                 return acc;
             }, []);
 
@@ -107,6 +106,8 @@ app.get('/obtener-cortes', authenticateToken, (req, res) => {
         }
     );
 });
+
+
 
 // Ruta para el login
 app.post('/login', (req, res) => {

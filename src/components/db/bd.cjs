@@ -5,7 +5,14 @@ const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: 'carlosvas12',
-    database: 'empresa_dirty'
+    database: 'empresa_dirty',
+    typeCast: function (field, next) {
+        if (field.type === 'NEWDECIMAL') {
+            return parseFloat(field.string());
+        }
+        return next();
+    }
+
 });
 
 
