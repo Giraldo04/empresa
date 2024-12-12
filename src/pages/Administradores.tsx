@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
+import { useHistory } from 'react-router';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonButton, IonItem, IonLabel, IonList, IonSelect, IonSelectOption, IonCard, IonCardContent, IonGrid, IonRow, IonCol, IonIcon } from '@ionic/react';
+// @ts-ignore
 import { add, copy, trash, logOut } from 'ionicons/icons'; // Importa algunos iconos
 import './Administradores.css';
+import api from '../components/db/apis.js'
+
+
+
+
 
 interface Posicion {
     nombre: string;
@@ -22,6 +29,19 @@ const Administradores: React.FC = () => {
     const [nuevaPosicion, setNuevaPosicion] = useState<string>('');
     const [nuevoPrecio, setNuevoPrecio] = useState<number>(0);
 
+    const history = useHistory();
+
+    const irACrearUsuario = () => {
+        history.push('/crear-usuario');
+    };
+
+
+
+
+    
+
+
+
     const agregarPosicion = () => {
         if (nuevaPosicion && nuevoPrecio > 0) {
             setPosiciones([...posiciones, { nombre: nuevaPosicion, precio: nuevoPrecio }]);
@@ -32,17 +52,60 @@ const Administradores: React.FC = () => {
         }
     };
 
-    const guardarModelo = () => {
-        const modeloExistente = modelos.find((mod) => mod.nombre === nuevoModelo);
-        if (modeloExistente) {
-            alert('El modelo ya existe. Por favor, elige otro nombre o usa la opción de copiar.');
+    const guardarModelo = async () => {
+        // Validar que el número de corte esté presente
+        if (!nuevoCorte) {
+            alert('El número de corte es obligatorio.');
             return;
         }
-        setModelos([...modelos, { nombre: nuevoModelo, posiciones }]);
-        setNuevoModelo('');
-        setNuevoCorte('');
-        setPosiciones([]);
+    
+        // Validar que haya un modelo seleccionado o un nuevo modelo creado
+        if (!nuevoModelo && !modeloSeleccionado) {
+            alert('Debes seleccionar un modelo existente o crear uno nuevo.');
+            return;
+        }
+    
+        // Validar que las posiciones existan para un nuevo modelo
+        if (!modeloSeleccionado && posiciones.length === 0) {
+            alert('Debes agregar al menos una posición para el nuevo modelo.');
+            return;
+        }
+    
+        try {
+            // Determinar si es un modelo existente o un nuevo modelo
+            const payload = modeloSeleccionado
+                ? {
+                      modelo: modeloSeleccionado,
+                      corte: nuevoCorte,
+                      posiciones: [], // Si es un modelo existente, las posiciones no son necesarias
+                  }
+                : {
+                      modelo: null, // No hay modelo existente
+                      nuevoModelo: nuevoModelo,
+                      corte: nuevoCorte,
+                      posiciones, // Posiciones para el nuevo modelo
+                  };
+    
+            // Llamar al backend con los datos correspondientes
+            const response = await api.post('/agregar-corte', payload);
+    
+            if (response.status === 201) {
+                alert('Corte y modelos guardados con éxito.');
+                if (!modeloSeleccionado) {
+                    // Agregar el nuevo modelo a la lista de modelos
+                    setModelos([...modelos, { nombre: nuevoModelo, posiciones }]);
+                }
+                // Limpiar los campos
+                setNuevoModelo('');
+                setNuevoCorte('');
+                setPosiciones([]);
+            }
+        } catch (error) {
+            console.error('Error al guardar el corte y modelo:', error);
+            alert('Hubo un error al guardar el corte y modelo. Inténtelo nuevamente.');
+        }
     };
+    
 
     const copiarPosiciones = () => {
         const modeloExistente = modelos.find((mod) => mod.nombre === modeloSeleccionado);
@@ -55,6 +118,9 @@ const Administradores: React.FC = () => {
         const nuevasPosiciones = posiciones.filter((_, i) => i !== index);
         setPosiciones(nuevasPosiciones);
     };
+
+    
+
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -73,6 +139,10 @@ const Administradores: React.FC = () => {
                 </IonToolbar>
             </IonHeader>
             <IonContent>
+
+            <IonButton expand="block" onClick={() => history.push('/crear-usuario')}>
+    Crear Usuario
+</IonButton>
                 <IonCard className="card">
                     <IonCardContent>
                         <IonGrid>

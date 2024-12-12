@@ -1,55 +1,71 @@
-import React, { useState } from 'react';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonButton, IonItem, IonLabel, IonList, IonCard, IonCardContent, IonGrid, IonRow, IonCol, IonIcon, IonToggle } from '@ionic/react';
+import React, { useState, useEffect } from 'react';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonButton, IonItem, IonLabel, IonList, IonCard, IonCardContent, IonGrid, IonRow, IonCol, IonIcon, IonSelect, IonSelectOption, IonToggle } from '@ionic/react';
 import { add, checkmark, trash, logOut } from 'ionicons/icons';
 import './Trabajadores.css';
-
-interface Registro {
-    posicion: string;
-    cantidad: number;
-    subtotal: number;
-}
+import api from '../components/db/apis';
 
 interface Posicion {
+    id: number;
     nombre: string;
     precio: number;
+    cantidad: number; // Para ingresar la cantidad realizada
 }
 
-interface TrabajadoresProps {
-    cortesDisponibles: { modelo: string; corte: string; posiciones: Posicion[] }[];
+interface Corte {
+    id: number;
+    numeroCorte: string;
+    modelo: string;
+    posiciones: Posicion[];
 }
 
-const Trabajadores: React.FC<TrabajadoresProps> = ({ cortesDisponibles = [] }) => {
-    const [corteSeleccionado, setCorteSeleccionado] = useState<string>('');
-    const [posicionSeleccionada, setPosicionSeleccionada] = useState<string>('');
-    const [cantidad, setCantidad] = useState<number>(0);
-    const [registros, setRegistros] = useState<Registro[]>([]);
+
+
+const Trabajadores: React.FC = () => {
+    const [cortes, setCortes] = useState<Corte[]>([]);
+    const [corteSeleccionado, setCorteSeleccionado] = useState<string | undefined>(undefined);
+    const [posiciones, setPosiciones] = useState<Posicion[]>([]);
     const [total, setTotal] = useState<number>(0);
     const [diasFeriados, setDiasFeriados] = useState<boolean>(false);
 
-    const corteActual = cortesDisponibles?.find(corte => corte.corte === corteSeleccionado);
-    const posicionesDisponibles = corteActual ? corteActual.posiciones : [];
+    // Obtener cortes desde el backend
+    useEffect(() => {
+        const obtenerCortes = async () => {
+            try {
+                const response = await api.get<Corte[]>('/obtener-cortes');
+                setCortes(response.data);
+            } catch (error) {
+                console.error('Error al obtener los cortes:', error);
+                alert('Error al cargar los cortes, intente nuevamente.');
+            }
+        };
+        obtenerCortes();
+    }, []);
 
-    const agregarRegistro = () => {
-        const valorPosicion = posicionesDisponibles.find(p => p.nombre === posicionSeleccionada)?.precio || 0;
-        const nuevoSubtotal = cantidad * valorPosicion;
-
-        setRegistros([...registros, { posicion: posicionSeleccionada, cantidad, subtotal: nuevoSubtotal }]);
-        calcularTotal([...registros, { posicion: posicionSeleccionada, cantidad, subtotal: nuevoSubtotal }]);
-
-        setPosicionSeleccionada('');
-        setCantidad(0);
+    // Manejar cambio de selección de corte
+    const manejarCambioCorte = (corteId: string) => {
+        const corte = cortes.find((c) => c.id.toString() === corteId);
+        if (corte) {
+            setCorteSeleccionado(corteId);
+            setPosiciones(
+                corte.posiciones.map((pos) => ({
+                    ...pos,
+                    cantidad: 0, // Inicializar cantidad en 0
+                }))
+            );
+        }
     };
 
-    const calcularTotal = (registrosActuales: Registro[]) => {
-        const nuevoSubtotal = registrosActuales.reduce((acc, registro) => acc + registro.subtotal, 0);
-        const incremento = diasFeriados ? 1.4 : 1.2; // 40% si hay días feriados, 20% si no
-        setTotal(nuevoSubtotal * incremento);
-    };
+    // Manejar cambio de cantidad en posiciones
+    const manejarCambioCantidad = (posicionId: number, cantidad: number) => {
+        const nuevasPosiciones = posiciones.map((pos) =>
+            pos.id === posicionId ? { ...pos, cantidad: cantidad || 0 } : pos
+        );
+        setPosiciones(nuevasPosiciones);
 
-    const eliminarRegistro = (index: number) => {
-        const nuevosRegistros = registros.filter((_, i) => i !== index);
-        setRegistros(nuevosRegistros);
-        calcularTotal(nuevosRegistros);
+        // Recalcular total
+        const nuevoTotal = nuevasPosiciones.reduce((acc, pos) => acc + pos.cantidad * pos.precio, 0);
+        const incremento = diasFeriados ? 1.4 : 1.2; // Incremento del 40% o 20%
+        setTotal(nuevoTotal * incremento);
     };
 
     const handleLogout = () => {
@@ -71,70 +87,61 @@ const Trabajadores: React.FC<TrabajadoresProps> = ({ cortesDisponibles = [] }) =
             <IonContent>
                 <IonCard className="card">
                     <IonCardContent>
-                        <IonGrid>
-                            <IonRow>
-                                <IonCol size="12" sizeMd="6">
-                                    <IonItem className="input-item">
-                                        <IonLabel position="floating">Corte</IonLabel>
-                                        <IonInput value={corteSeleccionado} onIonChange={(e) => setCorteSeleccionado(e.detail.value!)} />
-                                    </IonItem>
-                                </IonCol>
-                                <IonCol size="12" sizeMd="6">
-                                    <IonItem className="input-item">
-                                        <IonLabel position="floating">Posición</IonLabel>
-                                        <IonInput value={posicionSeleccionada} onIonChange={(e) => setPosicionSeleccionada(e.detail.value!)} />
-                                    </IonItem>
-                                </IonCol>
-                            </IonRow>
-                            <IonRow>
-                                <IonCol size="12" sizeMd="6">
-                                    <IonItem className="input-item">
-                                        <IonLabel position="floating">Cantidad</IonLabel>
-                                        <IonInput type="number" value={cantidad} onIonChange={(e) => setCantidad(parseInt(e.detail.value!, 10))} />
-                                    </IonItem>
-                                </IonCol>
-                                <IonCol>
-                                    <IonButton expand="block" className="primary-button ion-margin-top" onClick={agregarRegistro}>
-                                        <IonIcon icon={add} slot="start" />
-                                        Agregar Registro
-                                    </IonButton>
-                                </IonCol>
-                            </IonRow>
-                            <IonRow>
-                                <IonCol>
-                                    <IonItem>
-                                        <IonLabel>Días Feriados en la Semana</IonLabel>
-                                        <IonToggle checked={diasFeriados} onIonChange={(e) => {
-                                            setDiasFeriados(e.detail.checked);
-                                            calcularTotal(registros);
-                                        }} />
-                                    </IonItem>
-                                </IonCol>
-                            </IonRow>
-                        </IonGrid>
-                    </IonCardContent>
-                </IonCard>
-
-                <IonCard className="card">
-                    <IonCardContent>
-                        <IonLabel className="card-title">Registros:</IonLabel>
-                        <IonList>
-                            {registros.map((registro, index) => (
-                                <IonItem key={index}>
-                                    <IonLabel>{registro.posicion} - {registro.cantidad} unidades - Subtotal: ${registro.subtotal}</IonLabel>
-                                    <IonButton color="danger" slot="end" onClick={() => eliminarRegistro(index)}>
-                                        <IonIcon icon={trash} />
-                                    </IonButton>
-                                </IonItem>
+                        <IonLabel>Selecciona un Corte:</IonLabel>
+                        <IonSelect
+                            placeholder="Seleccionar corte"
+                            value={corteSeleccionado}
+                            onIonChange={(e) => manejarCambioCorte(e.detail.value)}
+                        >
+                            {cortes.map((corte) => (
+                                <IonSelectOption key={corte.id} value={corte.id.toString()}>
+                                    {corte.numeroCorte} - {corte.modelo}
+                                </IonSelectOption>
                             ))}
-                        </IonList>
+                        </IonSelect>
+
+                        {corteSeleccionado && (
+                            <IonList>
+                                {posiciones.map((pos) => (
+                                    <IonItem key={pos.id}>
+                                        <IonLabel>
+                                            {pos.nombre} - ${pos.precio}
+                                        </IonLabel>
+                                        <IonInput
+                                            type="number"
+                                            value={pos.cantidad}
+                                            onIonChange={(e) =>
+                                                manejarCambioCantidad(pos.id, parseInt(e.detail.value!, 10))
+                                            }
+                                            placeholder="Cantidad realizada"
+                                        />
+                                    </IonItem>
+                                ))}
+                            </IonList>
+                        )}
+
+                        <IonItem>
+                            <IonLabel>Días Feriados:</IonLabel>
+                            <IonToggle
+                                checked={diasFeriados}
+                                onIonChange={(e) => {
+                                    setDiasFeriados(e.detail.checked);
+                                    const nuevoTotal = posiciones.reduce(
+                                        (acc, pos) => acc + pos.cantidad * pos.precio,
+                                        0
+                                    );
+                                    const incremento = e.detail.checked ? 1.4 : 1.2;
+                                    setTotal(nuevoTotal * incremento);
+                                }}
+                            />
+                        </IonItem>
                     </IonCardContent>
                 </IonCard>
 
                 <IonCard className="card">
                     <IonCardContent>
                         <IonLabel className="card-title">Total Calculado:</IonLabel>
-                        <IonItem className="input-item">
+                        <IonItem>
                             <IonLabel>${total.toFixed(2)}</IonLabel>
                         </IonItem>
                         <IonButton expand="block" className="primary-button ion-margin-top">

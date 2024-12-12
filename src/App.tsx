@@ -6,6 +6,7 @@ import Trabajadores from './pages/Trabajadores';
 import Administradores from './pages/Administradores';
 import Login from './pages/Login';
 import PrivateRoute  from './components/PrivateRoute';
+import CrearUsuario from './pages/CrearUsuario';
 
 import '@ionic/react/css/core.css';
 import './theme/variables.css';
@@ -32,7 +33,9 @@ const App: React.FC = () => {
       <IonReactRouter>
         <IonRouterOutlet>
           <Route path="/login" component={Login} exact />
+          <Route path="/crear-usuario" component={CrearUsuario} exact />
           <PrivateRoute path="/administradores" component={Administradores} exact />
+          <PrivateRoute path="/crear-usuario" component={CrearUsuario} exact />
           <PrivateRoute path="/trabajadores" component={Trabajadores} exact />
           <Redirect from="/" to="/login" exact />
         </IonRouterOutlet>

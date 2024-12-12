@@ -57,6 +57,57 @@ app.post('/crear-usuario', (req, res) => {
     );
 });
 
+app.get('/obtener-cortes', authenticateToken, (req, res) => {
+    if (req.user.rol !== 'trabajador') {
+        return res.status(403).json({ message: 'Acceso denegado: Solo trabajadores pueden acceder a esta información.' });
+    }
+
+    connection.query(
+        `SELECT 
+            cortes.id AS corte_id,
+            cortes.numero_corte AS numeroCorte,
+            modelos.nombre AS modelo,
+            posiciones.id AS posicionId,
+            posiciones.nombre AS posicionNombre,
+            posiciones.precio AS posicionPrecio
+        FROM cortes
+        JOIN modelos ON cortes.modelo_id = modelos.id
+        LEFT JOIN posiciones ON posiciones.modelo_id = modelos.id
+        ORDER BY cortes.id; 
+        `,
+        (err, results) => {
+            if (err) {
+                console.error('Error al obtener los cortes:', err);
+                return res.status(500).json({ message: 'Error al obtener los cortes' });
+            }
+
+             // Estructura los datos en un formato más legible para el frontend
+             const cortes = results.reduce((acc, row) => {
+                let corte = acc.find(c => c.id === row.corteId);
+                if (!corte) {
+                    corte = {
+                        id: row.corteId,
+                        numeroCorte: row.numeroCorte,
+                        modelo: row.modelo,
+                        posiciones: [],
+                    };
+                    acc.push(corte);
+                }
+                if (row.posicionId) {
+                    corte.posiciones.push({
+                        id: row.posicionId,
+                        nombre: row.posicionNombre,
+                        precio: row.posicionPrecio,
+                    });
+                }
+                return acc;
+            }, []);
+
+            res.json(cortes);
+        }
+    );
+});
+
 // Ruta para el login
 app.post('/login', (req, res) => {
     const { email, contrasena } = req.body;
@@ -109,3 +160,77 @@ const PORT = 3000;
 app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
+
+app.post('/agregar-corte', authenticateToken, (req, res) => {
+    if (req.user.rol !== 'administrador') {
+        return res.status(403).json({ message: 'Acceso denegado: Solo administradores pueden agregar cortes.' });
+    }
+
+    const { modelo, nuevoModelo, corte, posiciones } = req.body;
+
+    if (!corte || (!modelo && (!nuevoModelo || !posiciones || !Array.isArray(posiciones)))) {
+        return res.status(400).json({ message: 'Datos incompletos o inválidos' });
+    }
+
+    if (modelo) {
+        // Si el modelo ya existe, solo se agrega el nuevo corte
+        connection.query(
+            'INSERT INTO cortes (numero_corte, modelo_id) VALUES (?, (SELECT id FROM modelos WHERE nombre = ?))',
+            [corte, modelo],
+            (err, results) => {
+                console.log(results);
+                if (err) {
+                    console.error('Error agregando el corte:', err);
+                    return res.status(500).json({ message: 'Error agregando el corte' });
+                }
+                res.status(201).json({ message: 'Corte agregado con éxito' });
+            }
+        );
+    } else {
+        // Si es un nuevo modelo, se registra el modelo y sus posiciones
+        connection.query(
+            'INSERT INTO modelos (nombre) VALUES (?)',
+            [nuevoModelo],
+            (err, results) => {
+                if (err) {
+                    console.error('Error creando el modelo:', err);
+                    return res.status(500).json({ message: 'Error creando el modelo' });
+                }
+
+                const modeloId = results.insertId;
+
+                // Insertar posiciones asociadas al modelo
+                const insertPosiciones = posiciones.map((pos) => [
+                    modeloId,
+                    pos.nombre,
+                    pos.precio,
+                ]);
+
+                connection.query(
+                    'INSERT INTO posiciones (modelo_id, nombre, precio) VALUES ?',
+                    [insertPosiciones],
+                    (err) => {
+                        if (err) {
+                            console.error('Error agregando las posiciones:', err);
+                            return res.status(500).json({ message: 'Error al agregar las posiciones.' });
+                        }
+                    }
+                );
+
+                // Insertar el nuevo corte asociado al modelo
+                connection.query(
+                    'INSERT INTO cortes (numero_corte, modelo_id) VALUES (?, ?)',
+                    [corte, modeloId],
+                    (err) => {
+                        if (err) {
+                            console.error('Error agregando el corte:', err);
+                            return res.status(500).json({ message: 'Error agregando el corte' });
+                        }
+                        res.status(201).json({ message: 'Modelo, posiciones y corte agregados con éxito' });
+                    }
+                );
+            }
+        );
+    }
+});
+

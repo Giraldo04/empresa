@@ -1,19 +1,20 @@
-import axios from 'axios'; // Cambia require por import
+import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:3000', // URL de tu servidor backend
+    baseURL: 'http://localhost:3000', 
 });
 
 api.interceptors.request.use((config) => {
     const token = localStorage.getItem('token');
+    console.log(localStorage.getItem('token'));
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     } else {
-        delete config.headers.Authorization; // Asegúrate de eliminar el encabezado si no hay token.
+        delete config.headers.Authorization; 
     }
     return config;
 }, (error) => {
     return Promise.reject(error);
 });
 
-export default api; // Cambia module.exports por export default
+export default api; 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonInput, IonButton, IonItem, IonLabel, IonGrid, IonRow, IonCol, IonAlert, IonSpinner } from '@ionic/react';
 // @ts-ignore
-import api from '../components/db/api'; // Asegúrate de que apunte al archivo api.js correctamente
+import api from '../components/db/apis.js';// Asegúrate de que apunte al archivo api.js correctamente
 
 import { useHistory } from 'react-router-dom'; // Importa desde 'react-router-dom'
 
@@ -12,6 +12,12 @@ const Login: React.FC = () => {
     const [alertMessage, setAlertMessage] = useState('');
     const [loading, setLoading] = useState(false);
     const history = useHistory();
+
+    // Define la interfaz para los datos de la respuesta del servidor
+interface LoginResponse {
+    token: string;
+    rol: string;
+}
 
     useEffect(() => {
         // Comprobar si ya hay una sesión activa
@@ -27,10 +33,12 @@ const Login: React.FC = () => {
         }
     }, [history]);
 
+    
+
     const handleLogin = async () => {
         setLoading(true);
         try {
-            const response = await api.post('/login', { email, contrasena: password });
+            const response = await api.post<LoginResponse>('/login', { email, contrasena: password });
             const { token, rol } = response.data;
 
             if (token && rol) {
